@@ -497,11 +497,11 @@ func TestCurrentConnectedIncrement(t *testing.T) {
 	c.EP = nil
 
 	if got := c.Stack().Stats().TCP.CurrentEstablished.Value(); got != 1 {
-		t.Errorf("got stats.TCP.CurrentEstablished.Value() = %v, want = 1", got)
+		t.Errorf("got stats.TCP.CurrentEstablished.Value() = %d, want = 1", got)
 	}
 	gotConnected := c.Stack().Stats().TCP.CurrentConnected.Value()
 	if gotConnected != 1 {
-		t.Errorf("got stats.TCP.CurrentConnected.Value() = %v, want = 1", gotConnected)
+		t.Errorf("got stats.TCP.CurrentConnected.Value() = %d, want = 1", gotConnected)
 	}
 
 	ep.Close()
@@ -524,10 +524,10 @@ func TestCurrentConnectedIncrement(t *testing.T) {
 	})
 
 	if got := c.Stack().Stats().TCP.CurrentEstablished.Value(); got != 0 {
-		t.Errorf("got stats.TCP.CurrentEstablished.Value() = %v, want = 0", got)
+		t.Errorf("got stats.TCP.CurrentEstablished.Value() = %d, want = 0", got)
 	}
 	if got := c.Stack().Stats().TCP.CurrentConnected.Value(); got != gotConnected {
-		t.Errorf("got stats.TCP.CurrentConnected.Value() = %v, want = %v", got, gotConnected)
+		t.Errorf("got stats.TCP.CurrentConnected.Value() = %d, want = %d", got, gotConnected)
 	}
 
 	// Ack and send FIN as well.
@@ -556,10 +556,10 @@ func TestCurrentConnectedIncrement(t *testing.T) {
 	time.Sleep(1200 * time.Millisecond)
 
 	if got := c.Stack().Stats().TCP.CurrentEstablished.Value(); got != 0 {
-		t.Errorf("got stats.TCP.CurrentEstablished.Value() = %v, want = 0", got)
+		t.Errorf("got stats.TCP.CurrentEstablished.Value() = %d, want = 0", got)
 	}
 	if got := c.Stack().Stats().TCP.CurrentConnected.Value(); got != 0 {
-		t.Errorf("got stats.TCP.CurrentConnected.Value() = %v, want = 0", got)
+		t.Errorf("got stats.TCP.CurrentConnected.Value() = %d, want = 0", got)
 	}
 }
 
@@ -2962,10 +2962,13 @@ loop:
 	}
 
 	if got := c.Stack().Stats().TCP.EstablishedResets.Value(); got != 1 {
-		t.Errorf("got stats.TCP.EstablishedResets.Value() = %v, want = 1", got)
+		t.Errorf("got stats.TCP.EstablishedResets.Value() = %d, want = 1", got)
 	}
 	if got := c.Stack().Stats().TCP.CurrentEstablished.Value(); got != 0 {
-		t.Errorf("got stats.TCP.CurrentEstablished.Value() = %v, want = 0", got)
+		t.Errorf("got stats.TCP.CurrentEstablished.Value() = %d, want = 0", got)
+	}
+	if got := c.Stack().Stats().TCP.CurrentConnected.Value(); got != 0 {
+		t.Errorf("got stats.TCP.CurrentConnected.Value() = %d, want = 0", got)
 	}
 }
 
@@ -3048,7 +3051,10 @@ func TestMaxRetransmitsTimeout(t *testing.T) {
 	)
 
 	if got := c.Stack().Stats().TCP.EstablishedTimedout.Value(); got != 1 {
-		t.Errorf("got c.Stack().Stats().TCP.EstablishedTimedout.Value() = %v, want = 1", got)
+		t.Errorf("got c.Stack().Stats().TCP.EstablishedTimedout.Value() = %d, want = 1", got)
+	}
+	if got := c.Stack().Stats().TCP.CurrentConnected.Value(); got != 0 {
+		t.Errorf("got stats.TCP.CurrentConnected.Value() = %d, want = 0", got)
 	}
 }
 
@@ -4752,7 +4758,10 @@ func TestKeepalive(t *testing.T) {
 	}
 
 	if got := c.Stack().Stats().TCP.CurrentEstablished.Value(); got != 0 {
-		t.Errorf("got stats.TCP.CurrentEstablished.Value() = %v, want = 0", got)
+		t.Errorf("got stats.TCP.CurrentEstablished.Value() = %d, want = 0", got)
+	}
+	if got := c.Stack().Stats().TCP.CurrentConnected.Value(); got != 0 {
+		t.Errorf("got stats.TCP.CurrentConnected.Value() = %d, want = 0", got)
 	}
 }
 
@@ -6771,6 +6780,9 @@ func TestTCPUserTimeout(t *testing.T) {
 	if got, want := c.Stack().Stats().TCP.EstablishedTimedout.Value(), origEstablishedTimedout+1; got != want {
 		t.Errorf("got c.Stack().Stats().TCP.EstablishedTimedout = %v, want = %v", got, want)
 	}
+	if got := c.Stack().Stats().TCP.CurrentConnected.Value(); got != 0 {
+		t.Errorf("got stats.TCP.CurrentConnected.Value() = %d, want = 0", got)
+	}
 }
 
 func TestKeepaliveWithUserTimeout(t *testing.T) {
@@ -6841,6 +6853,9 @@ func TestKeepaliveWithUserTimeout(t *testing.T) {
 	}
 	if got, want := c.Stack().Stats().TCP.EstablishedTimedout.Value(), origEstablishedTimedout+1; got != want {
 		t.Errorf("got c.Stack().Stats().TCP.EstablishedTimedout = %v, want = %v", got, want)
+	}
+	if got := c.Stack().Stats().TCP.CurrentConnected.Value(); got != 0 {
+		t.Errorf("got stats.TCP.CurrentConnected.Value() = %d, want = 0", got)
 	}
 }
 
