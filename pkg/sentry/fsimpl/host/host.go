@@ -91,14 +91,8 @@ func NewFD(ctx context.Context, mnt *vfs.Mount, hostFD int, opts *NewFDOptions) 
 		isTTY:      opts.IsTTY,
 		wouldBlock: wouldBlock(uint32(fileType)),
 		seekable:   seekable,
-		canMap:     canMap(uint32(fileType)),
 	}
 	i.pf.inode = i
-
-	// Non-seekable files can't be memory mapped, assert this.
-	if !i.seekable && i.canMap {
-		panic("files that can return EWOULDBLOCK (sockets, pipes, etc.) cannot be memory mapped")
-	}
 
 	// If the hostFD would block, we must set it to non-blocking and handle
 	// blocking behavior in the sentry.
@@ -220,15 +214,10 @@ type inode struct {
 	// Event queue for blocking operations.
 	queue waiter.Queue
 
-	// canMap specifies whether we allow the file to be memory mapped.
-	//
-	// This field is initialized at creation time and is immutable.
-	canMap bool
-
 	// mapsMu protects mappings.
 	mapsMu sync.Mutex
 
-	// If canMap is true, mappings tracks mappings of hostFD into
+	// If the file can be mapped, mappings tracks mappings of hostFD into
 	// memmap.MappingSpaces.
 	mappings memmap.MappingSet
 
@@ -694,10 +683,17 @@ func (f *fileDescription) Sync(context.Context) error {
 
 // ConfigureMMap implements FileDescriptionImpl.
 func (f *fileDescription) ConfigureMMap(_ context.Context, opts *memmap.MMapOpts) error {
-	if !f.inode.canMap {
+	i := f.inode
+	var s unix.Stat_t
+	if err := unix.Fstat(i.hostFD, &s); err != nil {
+		return err
+	}
+
+	// NOTE(b/38213152): Technically, some obscure char devices can be mapped,
+	// but we only allow regular files.
+	if (s.Mode & linux.S_IFMT) != linux.S_IFREG {
 		return syserror.ENODEV
 	}
-	i := f.inode
 	i.pf.fileMapperInitOnce.Do(i.pf.fileMapper.Init)
 	return vfs.GenericConfigureMMap(&f.vfsfd, i, opts)
 }
